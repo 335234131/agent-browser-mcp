@@ -1,61 +1,86 @@
 # agent-browser-mcp
 
-Real-browser MCP server for Chrome, built from the GenericAgent browser stack and packaged for reuse with Hermes and other MCP clients.
+一个面向真实 Chrome 浏览器的 MCP 服务。
 
-It exposes:
-- Real Chrome tab/session discovery and switching
-- Simplified page scanning (`scan_page`)
-- Arbitrary page JS execution (`execute_js`)
-- Raw CDP single-command and batch execution
-- Cookies access
-- Page screenshots via CDP
-- Desktop screenshots
-- Physical mouse/keyboard input via `pyautogui`
+它不是控制一个沙盒浏览器，也不是无状态网页抓取器，而是直接连接你自己正在使用的 Chrome，会保留：
+- 登录状态
+- Cookies
+- 已打开标签页
+- 真实页面上下文
 
-This project is designed for cases where you want an LLM agent to operate on your real logged-in browser session instead of a headless sandbox browser.
+如果你希望让 Hermes、Claude Desktop、Cursor 等 MCP 客户端直接操作你本机真实浏览器，这个项目就是为这个场景准备的。
 
-## What this package contains
+## 这个 MCP 能做什么
 
-- A standalone MCP server
-- The TMWebDriver bridge runtime
-- The DOM simplification/page scanning logic
-- An unpacked Chrome extension (`chrome_extension/`) that must be loaded manually
-- A CLI for setup and diagnostics
+这个项目把真实浏览器自动化能力包装成了标准 MCP 工具，重点能力包括：
 
-## Important safety notes
+### 1. 浏览器标签页与导航
+- 查看当前已连接的真实标签页
+- 切换到指定标签页
+- 在当前标签页打开 URL
+- 新建标签页
 
-This package can control your real browser and your real desktop.
+### 2. 页面读取
+- 扫描当前页面内容
+- 提取简化后的 HTML / 文本
+- 适合读取信息流、帖子列表、搜索结果页
 
-That means:
-- mouse movement is real
-- clicks are real
-- typed text is real
-- hotkeys are real
-- actions happen in your active Chrome/user session
+### 3. 页面执行与 CDP 控制
+- 在页面中执行任意 JavaScript
+- 直接调用 Chrome DevTools Protocol（CDP）
+- 支持单条命令和批量命令
+- 可用于截图、DOM 查询、点击、文件上传等更复杂操作
 
-Use it only with agents and MCP clients you trust.
+### 4. 截图能力
+- 页面截图（通过 CDP）
+- 桌面截图（用于辅助真实桌面操作）
 
-## Architecture
+### 5. 真实物理输入
+- 鼠标移动
+- 鼠标点击
+- 鼠标拖拽
+- 键盘输入
+- 热键发送
 
-The runtime has three layers:
+这类能力很适合处理：
+- 必须保留登录态的网站
+- 普通浏览器自动化工具容易被风控的网站
+- 必须使用真实点击 / 真实键盘输入的场景
+- 需要读取复杂页面结构的场景
 
-1. Chrome extension
-   - Injects into real pages
-   - Uses Chrome APIs for tabs, cookies, and debugger/CDP
-   - Connects to the local TMWebDriver bridge
+## 适合哪些场景
 
-2. TMWebDriver bridge
-   - Hosts a local WebSocket server on `127.0.0.1:18765`
-   - Hosts an HTTP sidecar on `127.0.0.1:18766`
-   - Tracks connected tabs and forwards browser actions/results
+例如：
+- 用 Hermes 读取你当前小红书首页推荐流
+- 在真实浏览器里打开后台页面并抓取信息
+- 调用 CDP 截图页面
+- 在页面 JS 不够用时，回退到真实鼠标/键盘操作
+- 让 Agent 直接操作你已登录的网站，而不是重新登录一个无状态浏览器
 
-3. MCP server
-   - Exposes browser operations as MCP tools
-   - Lets Hermes / Claude Desktop / Cursor call the bridge as standard MCP tools
+## 工作原理
 
-## Features
+项目由三层组成：
 
-### Browser/session tools
+1. Chrome 扩展
+- 注入到真实网页
+- 通过 Chrome API 访问 tabs / cookies / debugger / management
+- 与本地桥接服务通信
+
+2. TMWebDriver 本地桥接
+- 默认监听：
+  - WebSocket: `127.0.0.1:18765`
+  - HTTP: `127.0.0.1:18766`
+- 负责连接扩展、维护会话、转发执行结果
+
+3. MCP 服务
+- 把浏览器能力暴露为 MCP tools
+- 供 Hermes、Claude Desktop、Cursor 等客户端直接调用
+
+## 主要工具
+
+当前暴露的主要 MCP 工具包括：
+
+### 浏览器/标签页
 - `get_setup_status`
 - `list_tabs`
 - `switch_tab`
@@ -64,18 +89,18 @@ The runtime has three layers:
 - `extension_path`
 - `list_extensions`
 
-### Page interaction tools
+### 页面读取/执行
 - `scan_page`
 - `execute_js`
 
-### CDP tools
+### CDP 与截图
 - `cdp_command`
 - `cdp_batch`
 - `get_cookies`
 - `capture_page_screenshot`
-
-### Desktop/physical input tools
 - `capture_desktop_screenshot`
+
+### 物理输入
 - `mouse_move`
 - `mouse_click`
 - `mouse_drag`
@@ -83,26 +108,27 @@ The runtime has three layers:
 - `hotkey`
 - `pointer_info`
 
-## Requirements
+## 安装要求
 
-Recommended:
-- macOS or Windows
+推荐环境：
+- macOS 或 Windows
 - Python 3.10+
 - Google Chrome
-- An MCP client such as Hermes Agent, Claude Desktop, or Cursor
+- 任意支持 MCP 的客户端，例如：
+  - Hermes Agent
+  - Claude Desktop
+  - Cursor
 
-This package is most thoroughly validated on macOS with Chrome.
+## 安装
 
-## Installation
-
-### From a local checkout
+在本地克隆后执行：
 
 ```bash
 cd agent-browser-mcp
 pip install -e .
 ```
 
-### Build and install wheel locally
+如果你想先构建 wheel 再安装：
 
 ```bash
 python -m pip install --upgrade build
@@ -110,94 +136,77 @@ python -m build
 pip install dist/agent_browser_mcp-0.1.0-py3-none-any.whl
 ```
 
-### From GitHub later
+## 命令行工具
 
-Once you publish the repo, users can install with:
-
-```bash
-pip install git+https://github.com/YOUR_NAME/agent-browser-mcp.git
-```
-
-## CLI
-
-After installation, these commands are available:
-
-### Start the MCP server
+安装后会提供一个 CLI：
 
 ```bash
 agent-browser-mcp
 ```
 
-This runs the MCP server over stdio for MCP clients.
+它有几个常用子命令：
 
-### Print the unpacked Chrome extension path
+### 输出 Chrome 扩展目录
 
 ```bash
 agent-browser-mcp extension-path
 ```
 
-### Print a ready-to-paste Hermes config snippet
+### 输出 Hermes 配置片段
 
 ```bash
 agent-browser-mcp print-hermes-config
 ```
 
-### Run diagnostics
+### 环境诊断
 
 ```bash
 agent-browser-mcp doctor
 ```
 
-This prints JSON including:
-- extension path
-- generated `config.js` path
-- bridge ports
-- whether ports are open
-- connected tabs
-- suggested next steps
+这个命令会输出 JSON，帮助你检查：
+- 扩展目录位置
+- `config.js` 是否生成
+- 端口状态
+- 当前连接到的标签页数量
+- 下一步建议
 
-## Chrome extension setup
+## Chrome 扩展安装
 
-This package includes a Chrome extension that must be loaded manually.
+这个项目包含一个 unpacked Chrome 扩展，需要手动加载一次。
 
-### 1. Get the extension path
+### 第一步：获取扩展目录
 
 ```bash
 agent-browser-mcp extension-path
 ```
 
-Example output:
+### 第二步：在 Chrome 中加载
 
-```text
-/Users/you/.../site-packages/agent_browser_mcp/chrome_extension
-```
-
-### 2. Load it in Chrome
-
-Open:
+打开：
 
 ```text
 chrome://extensions
 ```
 
-Then:
-- enable Developer Mode
-- click "Load unpacked"
-- select the extension directory printed by the CLI
+然后：
+- 打开“开发者模式”
+- 点击“加载已解压的扩展程序”
+- 选择上一步输出的目录
 
-### 3. Open a normal page
+### 第三步：打开正常网页
 
-Important:
-- do not stay on `about:blank`
-- open a normal `http://` or `https://` page in Chrome
+注意不要停留在 `about:blank`。
 
-Examples:
+请在 Chrome 中打开一个正常网页，例如：
 - `https://www.baidu.com`
 - `https://www.xiaohongshu.com`
 
-## Hermes setup
+否则不会建立有效会话。
 
-Add this to `~/.hermes/config.yaml`:
+## Hermes 配置
+
+把下面这段加到 `~/.hermes/config.yaml`：
 
 ```yaml
 mcp_servers:
@@ -207,26 +216,27 @@ mcp_servers:
     connect_timeout: 60
 ```
 
-A copy is also included at:
+项目里也附带了示例文件：
 - `examples/hermes-config.yaml`
 
-Then restart Hermes or reload MCP servers.
+配置后，重启 Hermes 或重新加载 MCP。
 
-Verify:
+可用下面的命令验证：
 
 ```bash
 hermes mcp list
 hermes mcp test agent_browser
 ```
 
-If successful, Hermes should discover the browser MCP tools.
+如果测试成功，Hermes 就能发现并调用这些浏览器工具。
 
-## Claude Desktop setup
+## Claude Desktop / Cursor 配置
 
-Use the example file:
+仓库中也放了示例：
 - `examples/claude-desktop-config.json`
+- `examples/cursor-mcp.json`
 
-Typical config shape:
+配置结构都很简单，核心就是：
 
 ```json
 {
@@ -239,196 +249,91 @@ Typical config shape:
 }
 ```
 
-## Cursor setup
+## 典型使用流程
 
-Use the example file:
-- `examples/cursor-mcp.json`
+1. 安装 Python 包
+2. 在 Chrome 中加载扩展
+3. 打开一个真实网页
+4. 在 MCP 客户端中接入这个服务
+5. 开始调用浏览器工具
 
-## Typical usage flow
+例如，Agent 可以做：
+- 打开小红书首页
+- 读取推荐流
+- 扫描帖子列表
+- 对页面进行 CDP 截图
+- 在必要时执行真实鼠标/键盘操作
 
-1. Install package
-2. Load unpacked extension in Chrome
-3. Open a real web page in Chrome
-4. Start/reload your MCP client
-5. Call browser tools from the client
+## 安全提醒
 
-Example agent tasks:
-- open Xiaohongshu homepage in the real browser
-- scan visible recommendation cards
-- execute CDP screenshot capture
-- click/type on the real desktop when JS/CDP is insufficient
+这个项目操作的是你的真实浏览器和真实桌面。
 
-## Development notes
+这意味着：
+- 鼠标移动是真的
+- 点击是真的
+- 输入是真的
+- 热键是真的
+- 浏览器里的登录态也是真的
 
-### Local editable install
+请只在你信任的 MCP 客户端和 Agent 环境中使用。
 
-```bash
-pip install -e .
-```
+## 常见问题
 
-### Run the CLI directly
+### 1. Hermes 能看到 MCP 服务，但没有连接到任何标签页
 
-```bash
-python -m agent_browser_mcp.cli doctor
-```
+请检查：
+- 扩展是否已经在 `chrome://extensions` 中加载
+- Chrome 里是否打开了正常网页
+- 是否只是停留在 `about:blank`
 
-### Build distributions
-
-```bash
-python -m pip install --upgrade build
-python -m build
-```
-
-Build outputs go to:
-- `dist/`
-
-### Test package metadata/build
-
-```bash
-python -m py_compile src/agent_browser_mcp/*.py
-python -m build
-```
-
-## Repository layout
-
-```text
-agent-browser-mcp/
-├── pyproject.toml
-├── MANIFEST.in
-├── README.md
-├── LICENSE
-├── .gitignore
-├── examples/
-│   ├── hermes-config.yaml
-│   ├── claude-desktop-config.json
-│   └── cursor-mcp.json
-└── src/
-    └── agent_browser_mcp/
-        ├── __init__.py
-        ├── cli.py
-        ├── server.py
-        ├── tmwebdriver.py
-        ├── simphtml.py
-        └── chrome_extension/
-            ├── manifest.json
-            ├── background.js
-            ├── content.js
-            ├── disable_dialogs.js
-            ├── popup.html
-            └── popup.js
-```
-
-## Publishing to GitHub
-
-### 1. Create a new GitHub repo
-
-Example:
-- `agent-browser-mcp`
-
-### 2. Initialize git locally
-
-```bash
-cd /Users/zhea/Documents/agent-browser-mcp
-git init
-git add .
-git commit -m "feat: initial publishable package for agent-browser-mcp"
-```
-
-### 3. Add remote and push
-
-```bash
-git remote add origin git@github.com:YOUR_NAME/agent-browser-mcp.git
-git branch -M main
-git push -u origin main
-```
-
-Or with HTTPS:
-
-```bash
-git remote add origin https://github.com/YOUR_NAME/agent-browser-mcp.git
-git branch -M main
-git push -u origin main
-```
-
-## Publishing to PyPI later
-
-When ready:
-
-```bash
-python -m pip install --upgrade build twine
-python -m build
-python -m twine upload dist/*
-```
-
-Before uploading, update in `pyproject.toml`:
-- `version`
-- `project.urls`
-- `authors`
-- classifiers if needed
-
-## Known limitations
-
-- Chrome extension installation is manual unless you later publish via Chrome Web Store
-- Physical input uses the real active desktop and may be affected by OS permissions
-- Some sites may still require CDP or physical input due to `isTrusted` constraints
-- macOS accessibility/screen recording permissions may be required for full physical-input behavior
-
-## Troubleshooting
-
-### Hermes sees the MCP server but no tabs connect
-
-Check all of these:
-- extension is loaded in `chrome://extensions`
-- a normal `http/https` page is open
-- you are using Chrome, not only a background browser process
-- run:
+你也可以运行：
 
 ```bash
 agent-browser-mcp doctor
 ```
 
-### `connected_tabs` is 0
+### 2. `connected_tabs` 为 0
 
-Usually means one of:
-- extension not loaded
-- only `about:blank` is open
-- Chrome page needs refresh after extension reload
+通常是以下原因之一：
+- 扩展没有加载成功
+- 当前没有正常网页
+- 扩展刚重载，页面还没刷新
 
-Try:
-- refresh the current tab
-- open a fresh normal URL
-- rerun diagnostics
+建议：
+- 刷新当前网页
+- 新开一个正常 URL
+- 再运行一次 `doctor`
 
-### Physical input does not work on macOS
+### 3. 物理输入在 macOS 上不生效
 
-Grant the terminal / MCP client app the needed permissions in macOS:
-- Accessibility
-- Screen Recording (for screenshots)
+请给终端 / MCP 客户端授予系统权限：
+- 辅助功能（Accessibility）
+- 屏幕录制（如果你需要桌面截图）
 
-### `hermes mcp test agent_browser` fails
+### 4. `hermes mcp test agent_browser` 失败
 
-Check:
-- package installed successfully
-- `agent-browser-mcp` is on PATH
-- Hermes config references `agent-browser-mcp`
-- run `agent-browser-mcp doctor`
+请检查：
+- 包是否安装成功
+- `agent-browser-mcp` 是否在 PATH 中
+- Hermes 配置是否正确
+- 运行 `agent-browser-mcp doctor` 看诊断输出
 
-## Attribution and thanks
+## 致谢
 
-This project is extracted and packaged from the browser automation stack used in GenericAgent.
+这个项目的浏览器自动化能力，是从 GenericAgent 的浏览器栈中提取并重新封装成 MCP 服务的。
 
-Special thanks to the GenericAgent project and its authors for the original implementation ideas and source components that made this package possible.
+特别感谢 GenericAgent 项目及其作者提供的原始实现思路与核心能力来源。
 
-Source project:
-- GenericAgent: https://github.com/lsdefine/GenericAgent
+原项目地址：
+- https://github.com/lsdefine/GenericAgent
 
-The following parts in this package are derived from or adapted from that project:
+本项目中以下部分来自或改编自 GenericAgent：
 - `TMWebDriver.py`
 - `simphtml.py`
-- the `tmwd_cdp_bridge` Chrome extension assets
+- `tmwd_cdp_bridge` Chrome 扩展资源
 
-If you publish forks or derivatives of this package, please keep attribution to GenericAgent and verify license compatibility for redistributed components.
+如果你基于本项目继续二次开发或发布，也建议保留对 GenericAgent 的致谢与来源说明。
 
-## License
+## 许可证
 
 MIT
