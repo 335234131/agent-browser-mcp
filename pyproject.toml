@@ -33,9 +33,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourname/agent-browser-mcp"
-Repository = "https://github.com/yourname/agent-browser-mcp"
-Issues = "https://github.com/yourname/agent-browser-mcp/issues"
+Homepage = "https://github.com/335234131/agent-browser-mcp"
+Repository = "https://github.com/335234131/agent-browser-mcp"
+Issues = "https://github.com/335234131/agent-browser-mcp/issues"
 
 [project.scripts]
 agent-browser-mcp = "agent_browser_mcp.cli:main"
