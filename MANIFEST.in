@@ -1,0 +1,3 @@
+recursive-include src/agent_browser_mcp/chrome_extension *
+include README.md
+include LICENSE

@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-browser-mcp"
+version = "0.1.0"
+description = "Real-browser MCP server with TMWebDriver/CDP bridge, screenshots, cookies, and physical input"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "zhea" }
+]
+keywords = ["mcp", "browser automation", "chrome", "cdp", "tmwebdriver", "hermes"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Utilities"
+]
+dependencies = [
+  "mcp",
+  "requests",
+  "beautifulsoup4",
+  "bottle",
+  "simple-websocket-server",
+  "pyautogui",
+  "mss",
+  "pillow"
+]
+
+[project.urls]
+Homepage = "https://github.com/yourname/agent-browser-mcp"
+Repository = "https://github.com/yourname/agent-browser-mcp"
+Issues = "https://github.com/yourname/agent-browser-mcp/issues"
+
+[project.scripts]
+agent-browser-mcp = "agent_browser_mcp.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+agent_browser_mcp = ["chrome_extension/*"]

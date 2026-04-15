@@ -1,0 +1,5 @@
+mcp_servers:
+  agent_browser:
+    command: agent-browser-mcp
+    timeout: 120
+    connect_timeout: 60

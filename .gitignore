@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+src/*.egg-info/
+.venv/
+venv/
+.env
+.DS_Store
+src/agent_browser_mcp/chrome_extension/config.js
