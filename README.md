@@ -413,14 +413,21 @@ Check:
 - Hermes config references `agent-browser-mcp`
 - run `agent-browser-mcp doctor`
 
-## Attribution
+## Attribution and thanks
 
-This package is derived from and packages the browser automation approach extracted from the GenericAgent project:
+This project is extracted and packaged from the browser automation stack used in GenericAgent.
+
+Special thanks to the GenericAgent project and its authors for the original implementation ideas and source components that made this package possible.
+
+Source project:
+- GenericAgent: https://github.com/lsdefine/GenericAgent
+
+The following parts in this package are derived from or adapted from that project:
 - `TMWebDriver.py`
 - `simphtml.py`
-- the `tmwd_cdp_bridge` extension assets
+- the `tmwd_cdp_bridge` Chrome extension assets
 
-If you publish this publicly, you should keep attribution and verify license compatibility for redistributed components.
+If you publish forks or derivatives of this package, please keep attribution to GenericAgent and verify license compatibility for redistributed components.
 
 ## License
 
